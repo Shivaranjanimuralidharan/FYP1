@@ -1,0 +1,188 @@
+
+.upload-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 24px;
+  font-family: Inter, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  color: #1f2937;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+body{
+background: lightgray;
+}
+
+/* Title */
+.upload-container h1 {
+  text-align: center;
+  font-size: 32px;
+  font-family: cursive ;
+  font-style: italic;
+  margin: 6px 0 18px;
+  font-weight: 600;
+  color: darkolivegreen;
+}
+
+/* subheading row */
+.upload-subheading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: cursive ;
+  margin-bottom: 12px;
+  color: #374151;
+  font-size: 14px;
+}
+.upload-subheading .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #fb923c;
+  box-shadow: 0 2px 8px rgba(251,146,60,0.2);
+}
+
+/* Upload box */
+.upload-box {
+  border: 4px dashed peru;
+  background: palegreen;
+  border-radius: 12px;
+  min-height: 220px; 
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 40px;
+  box-shadow: inset 0 0 0 8px rgba(255,255,255,0.06);
+  color:black;
+  margin-bottom: 18px;
+}
+
+/* inside area */
+.upload-inner {
+  text-align: center;
+  font-family: cursive;
+  max-width: 100%
+}
+.welcome-text {
+  font-family: cursive;
+  font-size: 26px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 12px 0 16px;
+  text-align: center;
+}
+
+
+/* svg placeholder */
+.upload-inner svg {
+  display: block;
+  margin: 0 auto 10px;
+}
+
+/* primary action button */
+.upload-btn {
+  display: inline-flex;
+  align-items: center;
+  font-family: cursive;
+  gap: 8px;
+  background:grey;
+  color: #111827;
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(17,24,39,0.08);
+  font-weight: 600;
+  margin-top: 8px;
+}
+.upload-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* helper text */
+.upload-helper {
+  margin-top: 10px;
+  color: black;
+  font-size: 13px;
+  font-family: cursive;
+}
+
+/* selected file text */
+.selected-file {
+  margin-top: 10px;
+  color: rgba(17,24,39,0.85);
+  font-size: 13px;
+}
+
+/* Previews area */
+.previews {
+  margin-top: 18px;
+}
+
+.preview-card {
+  background: white;
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 4px 14px rgba(2,6,23,0.04);
+}
+
+.preview-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+@media (min-width: 768px) {
+  .preview-grid { grid-template-columns: 1fr 1fr; }
+}
+
+/* CSV table */
+.csv-preview {
+  overflow: auto;
+  max-height: 260px;
+  border-radius: 0;
+}
+.csv-preview table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.csv-preview th {
+  text-align: left;
+  padding: 8px;
+  font-size: 12px;
+  color: #6b7280;
+  border-bottom: 1px solid #eef2f7;
+}
+.csv-preview td {
+  padding: 8px;
+  border-bottom: 1px solid #f3f4f6;
+  color: #111827;
+}
+.csv-preview tr:nth-child(odd) td { background: #ffffff; }
+.csv-preview tr:nth-child(even) td { background: #fbfbfc; }
+
+/* error */
+.upload-error {
+  color: #b91c1c;
+  margin-top: 8px;
+  font-family: cursive;
+  font-size: 13px;
+}
+
+/* links row */
+.artifact-links {
+  margin-top: 10px;
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.artifact-links a {
+  color:#0f62fe;
+  text-decoration:underline;
+  font-size:13px;
+}
+
+/* footer note */
+.upload-note {
+  margin-top: 14px;
+  font-size: 12px;
+  font-family: cursive;
+  color: black
+}

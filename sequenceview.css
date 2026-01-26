@@ -1,0 +1,25 @@
+.sequence-view {
+  background: #fff;
+  padding: 16px;
+  border-radius: 12px;
+  box-shadow: 0 0 6px rgba(0,0,0,0.12);
+  margin-top: 20px;
+}
+
+.sequence-title {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.sequence-empty {
+  padding: 20px;
+  text-align: center;
+  color: #777;
+}
+
+.sequence-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
