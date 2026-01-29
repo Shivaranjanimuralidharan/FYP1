@@ -1,0 +1,26 @@
+# Python virtual env
+.venv/
+backend/.venv/
+venv/
+env/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Model weights
+*.pt
+*.pth
+
+# Uploads / temp
+uploads/
+tmp/
+# Backend runtime outputs
+backend/preproc_runs/
+backend/uploads/
+backend/uploads1/
+
+# Node
+node_modules/
+dist/
+build/
