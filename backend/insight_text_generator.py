@@ -109,39 +109,96 @@ def generate_text_descriptions(eva_sequence):
 
 def generate_single_description(insight, df):
     """
-    Minimal text generator for single insight (interactive mode).
-    Replace this later with full template‑based Module 3.2 logic.
+    Full template-based description generator
+    used by:
+    - Generate Current
+    - RL suggestions
     """
+
+    # Normalize insight_type
+    insight_type = insight.get("insight_type", "trend")
     measure = insight["measure"]
-    ins_type = insight["insight_type"]
-    subspace = insight.get("subspace")
+    start = insight.get("start")
+    end = insight.get("end")
 
-    return f"{ins_type} insight detected on {measure} at range {subspace}."
+    # Extract series
+    try:
+        series = df.loc[pd.to_datetime(start):pd.to_datetime(end), measure].dropna()
+    except Exception:
+        series = None
 
-def infer_insight_type(seg):
-    scores = seg.get("insight_scores", {})
-    if not scores:
-        return "trend"  # safe fallback
+    facts = {}
 
-    # Find max-scoring insight(s)
-    max_score = max(scores.values())
-    best = [k for k, v in scores.items() if v == max_score]
+    # ---------------- TREND ----------------
+    if insight_type == "trend" and series is not None and len(series) > 1:
+        slope = np.polyfit(np.arange(len(series)), series.values, 1)[0]
+        facts["slope"] = slope
+        trend_dir = "increasing" if slope > 0 else "decreasing"
 
-    # Resolve ties deterministically
-    priority = [
-        "extreme",
-        "trend",
-        "outlier",
-        "seasonality",
-        "correlation",
-        "similarity",
-        "autocorrelation",
-        "distribution"
-    ]
+        return (
+            f"An {trend_dir} trend is revealed in the {measure} "
+            f"between {start} and {end}."
+        )
 
-    for p in priority:
-        if p in best:
-            return p
+    # ---------------- DISTRIBUTION ----------------
+    if insight_type == "distribution" and series is not None:
+        return (
+            f"A distribution of {measure} between {start} and {end} "
+            f"can be seen, with a mean value of {series.mean():.2f}."
+        )
 
-    return best[0]  # final fallback
+    # ---------------- EXTREME ----------------
+    if insight_type == "extreme" and series is not None:
+        idx = series.idxmax()
+        return (
+            f"Among these variables, one in particular deserves attention. "
+            f"The {measure} in the range {start} to {end} "
+            f"is highlighted by its maximum value of {series.max():.2f}."
+        )
+
+    # ---------------- SEASONALITY ----------------
+    if insight_type == "seasonality":
+        num_periods = "multiple"
+        if series is not None and len(series) > 10:
+            diffs = series.diff().dropna()
+            num_periods = int(((diffs.shift(1) > 0) & (diffs <= 0)).sum())
+
+        return (
+            f"A seasonal pattern in observed in the {measure} measure which can be observed between {start} and {end} "
+            f"with {num_periods} periods present in the whole time range."
+        )
+
+    # ---------------- OUTLIER ----------------
+    if insight_type == "outlier" and series is not None:
+        ts = series.idxmax()
+        return (
+            f"Taking multiple variables into account, the value at {ts} "
+            f"exhibits an outlier within the range {start} to {end} "
+            f"in comparison to the rest."
+        )
+
+    # ---------------- CORRELATION ----------------
+    if insight_type == "correlation":
+        return (
+            f"Taking multiple variables as a whole, the correlation "
+            f"between {start} and {end} with respect to multiple measures is shown."
+        )
+
+    # ---------------- SIMILARITY ----------------
+    if insight_type == "similarity":
+        return (
+            f"The {measure} between {start} and {end} "
+            f"is highly similar to other measures across subspaces."
+        )
+
+    # ---------------- AUTOCORRELATION (NEW) ----------------
+    if insight_type == "autocorrelation":
+        return (
+            f"A strong autocorrelation pattern is observed in {measure} "
+            f"between {start} and {end}, indicating dependency on past values."
+        )
+
+    # ---------------- FALLBACK ----------------
+    return f"A notable pattern is observed in {measure} between {start} and {end}."
+
 

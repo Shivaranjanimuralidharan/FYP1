@@ -2,6 +2,7 @@ import torch
 import numpy as np
 import random
 import os
+import json
 
 from rl.ppo_policy import PPOAgent
 from rl.eva_env import ACTION_TYPES
@@ -14,20 +15,39 @@ TOP_K = 5
 
 
 class PPOInferenceEngine:
-    def __init__(self, state_dim, action_dim, device="cpu"):
+    def __init__(self, state_dim, action_dim, metadata_path, device="cpu"):
         self.device = device
 
-        # ---- action metadata (must exist) ----
+        # -----------------------------
+        # LOAD METADATA (DATASET-AGNOSTIC)
+        # -----------------------------
+        with open(metadata_path, "r") as f:
+            metadata = json.load(f)
+
+        self.measures = metadata["kept_columns"]
+        self.time_col = metadata["time_col"]
+
+        if not self.measures:
+            raise ValueError("No measures found in metadata.json")
+
+        # -----------------------------
+        # ACTION SPACE
+        # -----------------------------
         self.action_space = ACTION_TYPES
+
+        # insight types are semantic — safe to keep
         self.insight_types = [
-            "trend", "distribution", "correlation",
-            "outlier", "seasonality", "autocorrelation"
-        ]
-        self.measures = [
-            "cases", "deaths", "vaccinations"
+            "trend",
+            "distribution",
+            "correlation",
+            "outlier",
+            "seasonality",
+            "autocorrelation"
         ]
 
-        # ---- load PPO agent ----
+        # -----------------------------
+        # LOAD PPO MODEL
+        # -----------------------------
         self.agent = PPOAgent(
             state_dim=state_dim,
             action_dim=action_dim,
@@ -46,11 +66,14 @@ class PPOInferenceEngine:
     # -------------------------
     def _normalize_insight(self, insight):
         return {
-            "insight_type": insight.get("insight_type", "trend"),
-            "measure": insight.get("measure", "cases"),
+            "insight_type": insight.get(
+                "insight_type",
+                insight.get("type", "trend")
+            ),
+            "measure": insight["measure"],
             "breakdown": insight.get("breakdown", "day"),
-            "description": insight.get("description", ""),
-            "thumbnail_path": insight.get("thumbnail_path", None),
+            "start": insight.get("start"),
+            "end": insight.get("end"),
         }
 
     # -------------------------
@@ -74,51 +97,63 @@ class PPOInferenceEngine:
             action = self.action_space[idx]
 
             new_insight = self._apply_action(clicked_insight, action)
-            alternatives.append({
-            "insight": {
-                "insight_type": new_insight.get("insight_type", "trend"),
-                "measure": new_insight.get("measure", ""),
-                "breakdown": new_insight.get("breakdown", "day"),
-                "description": new_insight.get(
-                    "description",
-                    "Alternative generated insight"
-                ),
-                "thumbnail_path": new_insight.get("thumbnail_path", None),
-            },
-            "meta": {
-                "action": action,
-                "probability": float(probs[idx]),
-            }
-            })
 
+            alternatives.append({
+                "insight": new_insight,
+                "meta": {
+                    "action": action,
+                    "probability": float(probs[idx]),
+                }
+            })
 
         return alternatives
 
     # -------------------------
-    # APPLY ACTION (FIXED)
+    # APPLY ACTION — NO HARDCODING
     # -------------------------
     def _apply_action(self, insight, action):
         new_insight = insight.copy()
 
+        # CHANGE TYPE
         if action == "CHANGE_TYPE":
-            new_insight["insight_type"] = random.choice(self.insight_types)
+            types = [t for t in self.insight_types if t != insight["insight_type"]]
+            new_insight["insight_type"] = (
+                random.choice(types) if types else insight["insight_type"]
+            )
 
+        # CHANGE MEASURE — from metadata
         elif action == "CHANGE_MEASURE":
-            new_insight["measure"] = random.choice(self.measures)
+            measures = [m for m in self.measures if m != insight["measure"]]
+            if measures:
+                new_insight["measure"] = random.choice(measures)
 
+        # AGGREGATION
         elif action == "AGGREGATE":
             new_insight["breakdown"] = "month"
 
         elif action == "REMOVE_AGGREGATE":
             new_insight["breakdown"] = "day"
 
-        # SHIFT actions are safe no-ops for UI
-        elif action in ["SHIFT_FORWARD", "SHIFT_BACKWARD", "SHIFT_PERIODICAL"]:
-            pass
+        # SHIFT — keep measure same, backend will adjust window
+        elif action == "SHIFT_FORWARD":
+            new_insight["shift"] = "forward"
 
-        new_insight["description"] = (
-            f"Alternative {new_insight['insight_type']} insight "
-            f"on {new_insight['measure']} ({new_insight['breakdown']})"
-        )
+        elif action == "SHIFT_BACKWARD":
+            new_insight["shift"] = "backward"
+
+        elif action == "SHIFT_PERIODICAL":
+            new_insight["shift"] = "periodic"
+
+        VALID_INSIGHTS = {
+            "trend",
+            "seasonality",
+            "outlier",
+            "distribution",
+            "correlation",
+            "autocorrelation",
+        }
+
+        if new_insight.get("insight_type") not in VALID_INSIGHTS:
+            new_insight["insight_type"] = "trend"
 
         return new_insight

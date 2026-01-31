@@ -50,6 +50,11 @@ from data_preprocessor_algo1 import run_preprocess
 import pandas as pd
 import numpy as np
 
+#Mod2
+from rl.inference import PPOInferenceEngine
+from rl.eva_env import ACTION_TYPES
+
+
 APP_ROOT = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_DIR = os.path.join(APP_ROOT, "uploads")
 OUT_BASE = os.path.join(APP_ROOT, "preproc_runs")
@@ -326,6 +331,9 @@ def run_sequence_renderer_task(run_id: str, base_dir: str):
 
     charts_dir = os.path.join(run_folder, "annotated_charts")
     os.makedirs(charts_dir, exist_ok=True)
+    for seg in eva_seq:
+     if "insight_type" not in seg:
+        seg["insight_type"] = "trend"
 
     generate_annotated_charts(eva_seq, df, charts_dir)
 
@@ -400,32 +408,54 @@ def score_segments(run_id: str):
 
 @app.post("/api/{run_id}/sequence/generate_one")
 async def generate_one_insight(run_id: str, payload: dict):
-    """
-    Generate ONE insight card (chart + description).
-    """
-    run_folder = os.path.join(OUT_BASE, run_id)
-    import pandas as pd, json
+    import uuid
+    import pandas as pd
 
+    run_folder = os.path.join(OUT_BASE, run_id)
     df = pd.read_parquet(os.path.join(run_folder, "cleaned_df.parquet"))
 
     measure = payload["measure"]
     ins_type = payload["type"]
     breakdown = payload["breakdown"]
     subspace = payload.get("subspace")
-    timestamps = df.index.tolist()
 
+    # Convert subspace indices → timestamps
     if subspace:
-        subspace = {
-            "start": timestamps[subspace["start"]],
-            "end": timestamps[subspace["end"]]
-        }
+        timestamps = df.index.tolist()
+        start = timestamps[subspace["start"]]
+        end = timestamps[subspace["end"]]
+    else:
+        start, end = df.index.min(), df.index.max()
 
-    insight = {
+    # Build EVA-style segment (THIS IS KEY)
+    segment = {
         "measure": measure,
         "insight_type": ins_type,
         "breakdown": breakdown,
-        "subspace": subspace
+        "start": start,
+        "end": end,
     }
+
+    charts_folder = os.path.join(run_folder, "annotated_charts")
+    os.makedirs(charts_folder, exist_ok=True)
+
+    # ✅ UNIQUE filename per request
+    uid = uuid.uuid4().hex[:8]
+    filename = f"interactive_{uid}_{measure}_{ins_type}.png"
+
+    # ✅ Render EXACTLY ONE annotated EVA chart
+    generate_annotated_charts([segment], df, charts_folder, filename_override=filename)
+
+    # Text description matches the same segment
+    description = generate_single_description(segment, df)
+
+    return {
+        **segment,
+        "thumbnail_path": f"/api/{run_id}/sequence/charts/{filename}",
+        "description": description
+    }
+
+
 
     # Module 3.1 — annotated chart
     charts_folder = os.path.join(run_folder, "annotated_charts")
@@ -575,22 +605,125 @@ def get_combined_sequence(run_id: str):
 
     return {"sequence": combined}
 
-#module2
-from rl.inference import PPOInferenceEngine
-
-ppo_engine = PPOInferenceEngine(
-    state_dim=128,
-    action_dim=6
-)
 
 @app.post("/get_alternatives")
 def get_alternatives(payload: dict):
+
     state_vector = payload["state_vector"]
     clicked_insight = payload["clicked_insight"]
+    run_id = payload["run_id"]
 
-    alternatives = ppo_engine.get_alternate_insights(
+    run_folder = os.path.join(OUT_BASE, run_id)
+    df = pd.read_parquet(os.path.join(run_folder, "cleaned_df.parquet"))
+
+    metadata_path = os.path.join(OUT_BASE, run_id, "metadata.json")
+
+    # ✅ create RL engine
+    ppo_engine = PPOInferenceEngine(
+        state_dim=128,
+        action_dim=len(ACTION_TYPES),
+        metadata_path=metadata_path
+    )
+
+    charts_folder = os.path.join(run_folder, "annotated_charts")
+    os.makedirs(charts_folder, exist_ok=True)
+
+    # RL propose alternatives
+    rl_alternatives = ppo_engine.get_alternate_insights(
         state_vector,
         clicked_insight
     )
 
-    return {"alternatives": alternatives}
+    rendered_alternatives = []
+
+    for idx, alt in enumerate(rl_alternatives):
+
+        insight = alt["insight"]
+
+        segment = {
+            "measure": insight["measure"],
+            "insight_type": insight["insight_type"],
+            "breakdown": insight["breakdown"],
+            "start": insight["start"],
+            "end": insight["end"],
+        }
+
+        # ----------------------------------
+        # APPLY SHIFT ACTION (if any)
+        # ----------------------------------
+        shift = insight.get("shift")
+
+        if shift and segment["start"] and segment["end"]:
+            start = pd.to_datetime(segment["start"])
+            end = pd.to_datetime(segment["end"])
+            window = end - start
+
+            if shift == "forward":
+                new_start = start + window
+                new_end = end + window
+            elif shift == "backward":
+                new_start = start - window
+                new_end = end - window
+            else:
+                new_start, new_end = start, end
+
+            # clamp to dataset bounds
+            min_t = df.index.min()
+            max_t = df.index.max()
+
+            if new_start >= min_t and new_end <= max_t:
+                segment["start"] = new_start
+                segment["end"] = new_end
+
+
+        filename = f"alt_{idx}_{segment['insight_type']}.png"
+
+        generate_annotated_charts(
+            [segment],
+            df,
+            charts_folder,
+            filename_override=filename
+        )
+
+        description = generate_single_description(segment, df)
+
+        rendered_alternatives.append({
+            "insight": {
+                "measure": segment["measure"],
+                "insight_type": segment["insight_type"],
+                "breakdown": segment["breakdown"],
+                "start": segment["start"],
+                "end": segment["end"],
+                "thumbnail_path": f"/api/{run_id}/sequence/charts/alt_{idx}_{segment['insight_type']}.png",
+                "description": description,
+            },
+            "meta": alt["meta"],
+        })
+
+    import json 
+    print(
+        "\n[RL alternatives – formatted]\n"
+        + json.dumps(rendered_alternatives, indent=2, default=str)
+    )
+
+    rl_out_path = os.path.join(run_folder, "rl_alternatives.json")
+
+    with open(rl_out_path, "w", encoding="utf-8") as f:
+        json.dump(rendered_alternatives, f, indent=2, default=str)
+
+    print(f"[RL] Saved alternatives → {rl_out_path}")
+
+    return {"alternatives": rendered_alternatives}
+
+
+def load_dataset_metadata(run_id):
+    path = os.path.join(OUT_BASE, run_id, "metadata.json")
+    with open(path) as f:
+        meta = json.load(f)
+    return {
+        "time_col": meta["time_col"],
+        "measures": meta["kept_columns"]
+    }
+
+
+

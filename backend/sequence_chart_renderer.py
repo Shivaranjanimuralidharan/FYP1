@@ -90,22 +90,61 @@ def overlay_insight(ax, sub, insight_type, facts):
 # -------------------------------------------------------------------
 #  MAIN FUNCTION – GENERATE CHARTS
 # -------------------------------------------------------------------
-def generate_annotated_charts(eva_sequence, raw_df, out_dir):
+
+def fix_y_axis(ax, sub):
+    """
+    Force stable, human-readable Y axis scaling.
+    """
+    ymin = sub.min()
+    ymax = sub.max()
+
+    if ymin == ymax:
+        # flat signal safeguard
+        pad = abs(ymin) * 0.05 if ymin != 0 else 1.0
+        ymin -= pad
+        ymax += pad
+    else:
+        pad = (ymax - ymin) * 0.08
+        ymin -= pad
+        ymax += pad
+
+    ax.set_ylim(ymin, ymax)
+
+    # Disable scientific notation & offsets
+    ax.ticklabel_format(style="plain", axis="y")
+    ax.get_yaxis().get_major_formatter().set_useOffset(False)
+
+
+def generate_annotated_charts(eva_sequence, raw_df, out_dir, filename_override=None):
     """
     eva_sequence = ranked_segments.json (top-k)
     raw_df = cleaned_df.parquet
     out_dir = preproc_runs/<run_id>/annotated_charts/
     """
+
     os.makedirs(out_dir, exist_ok=True)
 
     chart_paths = []
 
+    VALID_INSIGHTS = {
+        "trend",
+        "seasonality",
+        "outlier",
+        "distribution",
+        "correlation",
+        "autocorrelation",
+        "extreme",
+        "similarity",
+    }
+
     for idx, seg in enumerate(eva_sequence):
+
         measure = seg["measure"]
 
-    # --- FIX: derive insight type dynamically ---
+        # ✅ fix insight type safely
         insight_type = seg.get("insight_type")
-        if insight_type is None:
+
+        if insight_type not in VALID_INSIGHTS:
             insight_type = infer_insight_type(seg)
 
         facts = seg.get("facts", {})
@@ -113,14 +152,24 @@ def generate_annotated_charts(eva_sequence, raw_df, out_dir):
         start = pd.to_datetime(seg["start"])
         end = pd.to_datetime(seg["end"])
 
+        if measure not in raw_df.columns:
+            print(f"[chart renderer] measure missing:", measure)
+            continue
+
         sub = raw_df.loc[start:end, measure].dropna()
+
         if sub.empty:
+            print(f"[chart renderer] empty slice:", measure, start, end)
             continue
 
         fig, ax = plt.subplots(figsize=(6, 2))
 
         ax.plot(sub.index, sub.values, color="#446FA5", linewidth=1.6)
 
+        # ✅ fix y scale
+        fix_y_axis(ax, sub)
+
+        # ✅ overlay insight markers
         overlay_insight(ax, sub, insight_type, facts)
 
         ax.set_title(f"{measure} — {insight_type.capitalize()}")
@@ -128,14 +177,21 @@ def generate_annotated_charts(eva_sequence, raw_df, out_dir):
         plt.xticks(rotation=30)
         plt.tight_layout()
 
-        filename = f"chart_{idx}_{insight_type}.png"
+        # ✅ filename logic
+        if filename_override:
+            filename = filename_override
+        else:
+            filename = f"chart_{idx}_{insight_type}.png"
+
         fpath = os.path.join(out_dir, filename)
+
         fig.savefig(fpath, dpi=150)
         plt.close(fig)
 
         chart_paths.append(fpath)
 
     return chart_paths
+
 
 def render_single_chart(insight, df, folder, filename="single.png"):
     """

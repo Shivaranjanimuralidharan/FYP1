@@ -16,33 +16,41 @@ ACTION_TYPES = [
 
 
 class EVAEnvironment:
-    def __init__(self, dataset_path, max_steps=5):
+    def __init__(self, dataset_path, metadata_path, max_steps=5):
+
         self.dataset_path = dataset_path
         self.max_steps = max_steps
 
         # -----------------------------
-        # LOAD DATASET (FIX)
+        # LOAD DATASET
         # -----------------------------
         self.dataset = pd.read_csv(dataset_path)
 
-        # Ensure date column exists
-        if "date" in self.dataset.columns:
-            self.dataset["date"] = pd.to_datetime(self.dataset["date"])
-        else:
-            raise ValueError("Dataset must contain a 'date' column")
         # -----------------------------
-        # DEFINE MEASURES (variables)
+        # LOAD METADATA (DATASET-AGNOSTIC)
         # -----------------------------
-        self.measures = [
-            col for col in self.dataset.columns if col != "date"
-        ]
+        import json
+        with open(metadata_path, "r") as f:
+            meta = json.load(f)
+
+        self.time_col = meta["time_col"]
+        self.measures = meta["kept_columns"]
+
+        # -----------------------------
+        # VALIDATE
+        # -----------------------------
+        if self.time_col not in self.dataset.columns:
+            raise ValueError(f"Missing time column: {self.time_col}")
+
+        self.dataset[self.time_col] = pd.to_datetime(
+            self.dataset[self.time_col]
+        )
 
         if len(self.measures) == 0:
-            raise ValueError("No measure columns found in dataset")
-
+            raise ValueError("No measure columns found in metadata")
 
         # -----------------------------
-        # ACTION SPACE (Table 1)
+        # ACTION SPACE
         # -----------------------------
         self.action_types = [
             "CHANGE_TYPE",
@@ -52,6 +60,7 @@ class EVAEnvironment:
             "REMOVE_AGGREGATE",
             "CHANGE_MEASURE",
         ]
+
         self.action_dim = len(self.action_types)
 
         # -----------------------------
@@ -65,8 +74,8 @@ class EVAEnvironment:
         self.current_step = 0
         self.current_sequence = []
 
-        # Initialize episode
         self.reset()
+
 
 
     # -------------------------

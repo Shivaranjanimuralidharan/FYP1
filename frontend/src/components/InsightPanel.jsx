@@ -127,9 +127,9 @@ export default function InsightPanel({
         <button className="btn-generate" onClick={onGenerateCurrent}>
           Generate Current
         </button>
-        <button className="btn-generate" onClick={onGenerateSubsequent}>
+        {/*<button className="btn-generate" onClick={onGenerateSubsequent}>
           Generate Subsequent
-        </button>
+        </button>*/}
       </div>
     </div>
   );

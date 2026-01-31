@@ -85,7 +85,11 @@ export default function Dashboard() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         state_vector: stateVector,
-        clicked_insight: card,
+        clicked_insight: {
+          ...card,
+          insight_type: card.insight_type || card.type
+        },
+        run_id: runId,
       }),
     });
 
