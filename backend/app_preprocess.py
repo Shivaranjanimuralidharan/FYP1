@@ -715,6 +715,59 @@ def get_alternatives(payload: dict):
 
     return {"alternatives": rendered_alternatives}
 
+from fastapi import HTTPException
+from module4.module4_main import run_module4
+import os
+
+
+@app.post("/api/{run_id}/export_narrative")
+def export_narrative(run_id: str):
+
+    try:
+        print(f"[Export] Starting export for run_id={run_id}")
+
+        BASE_DIR = os.path.join(os.getcwd(), "preproc_runs")
+        run_dir = os.path.join(BASE_DIR, run_id)
+
+        if not os.path.exists(run_dir):
+            raise Exception(f"Run folder not found: {run_id}")
+
+        result = run_module4(run_id, BASE_DIR)
+
+        print("[Export] Module4 completed")
+
+        narrative_path = os.path.join(run_dir, "narrative.txt")
+
+        if not os.path.exists(narrative_path):
+            raise Exception("Narrative file was not generated")
+
+        return {
+        "status": "ok",
+        "narrative_path": f"/api/{run_id}/narrative.txt"
+    }
+
+    except Exception as e:
+        print("❌ EXPORT ERROR:", str(e))
+        import traceback
+        traceback.print_exc()
+
+        raise HTTPException(status_code=500, detail=str(e))
+
+from fastapi.responses import FileResponse
+
+@app.get("/api/{run_id}/narrative.txt")
+def download_narrative(run_id: str):
+    BASE_DIR = os.path.join(os.getcwd(), "preproc_runs")
+    narrative_path = os.path.join(BASE_DIR, run_id, "narrative.txt")
+
+    if not os.path.exists(narrative_path):
+        raise HTTPException(status_code=404, detail="Narrative not found")
+
+    return FileResponse(
+        narrative_path,
+        media_type="text/plain",
+        filename="narrative.txt"
+    )
 
 def load_dataset_metadata(run_id):
     path = os.path.join(OUT_BASE, run_id, "metadata.json")
