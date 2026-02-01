@@ -186,6 +186,48 @@ export default function Dashboard() {
     const json = await res.json();
     setSequence(json.sequence);
   }
+
+  async function exportNarrative(runId) {
+    try {
+      // Disable button / show loading state if you want
+      console.log("[Export] Generating narrative...");
+
+      // Step 1: POST to generate narrative
+      const postRes = await fetch(`http://localhost:8000/api/${runId}/export_narrative`, {
+        method: "POST",
+      });
+
+      if (!postRes.ok) {
+        throw new Error("Failed to generate narrative");
+      }
+
+      console.log("[Export] Narrative generated, downloading...");
+
+      // Step 2: GET the narrative.txt and trigger download
+      const getRes = await fetch(`http://localhost:8000/api/${runId}/narrative.txt`);
+      if (!getRes.ok) {
+        throw new Error("Failed to download narrative");
+      }
+
+      const blob = await getRes.blob();
+      const url = window.URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "narrative.txt";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+
+      console.log("[Export] Download complete!");
+    } catch (err) {
+      console.error("❌ Export failed:", err);
+      alert("Failed to export narrative. Check console for details.");
+    }
+  }
+
+
   async function handleStart() {
   setLoading(true);
 
@@ -225,7 +267,7 @@ export default function Dashboard() {
     <div className="dashboard-main">
       {error && <div className="error-box">{error}</div>}
 
-      <div className="top-section">
+      <div className="left-panel">
         {/* LEFT: TIMELINE VIEW */}
         <div className="timeline-container">
           <TimelineView
@@ -238,12 +280,20 @@ export default function Dashboard() {
           />
         </div>
 
-        {/* RIGHT: DATA OPTION PANEL → INSIGHT PANEL */}
-        <div className="right-panel">
-          {mode === "data" ? (
-            <DataOptions measures={columns} onStart={handleStart} loading={loading} />  
-          ) : (
-            <>
+        {/* BOTTOM: SEQUENCE VIEW */}
+        <div className="sequence-container">
+          <SequenceView sequence={sequence} onSelectCard={handleSelectCard} />
+        </div>
+      </div>  
+
+
+      {/* RIGHT: DATA OPTION PANEL → INSIGHT PANEL */}
+      <div className="right-panel">
+        {mode === "data" ? (
+          <DataOptions measures={columns} onStart={handleStart} loading={loading} />  
+        ) : (
+          <>
+          <div className="right-insight">
             <InsightPanel
             measures={columns}
             selectedMeasure={selectedMeasure}
@@ -258,8 +308,9 @@ export default function Dashboard() {
             onGenerateCurrent={handleGenerateCurrent}
             onGenerateSubsequent={handleGenerateSubsequent}
           />
+          </div>
 
-
+            <div className="right-suggestions">
               <SuggestionPanel
                 suggestions={suggestions}
                 onSelect={(newInsight) => {
@@ -272,16 +323,22 @@ export default function Dashboard() {
                   }
                 }}
               />
+            </div>
+            <div className="right-export">
+              <button
+                className="export-btn"
+                onClick={() => exportNarrative(runId)}
+              >
+                Export Narrative
+              </button>
+            </div>
 
-            </>
-          )}
-        </div>
+          </>
+        )}
       </div>
+      
 
-      {/* BOTTOM: SEQUENCE VIEW */}
-      <div className="sequence-section">
-        <SequenceView sequence={sequence} onSelectCard={handleSelectCard} />
-      </div>
+      
     </div>
   );
 }

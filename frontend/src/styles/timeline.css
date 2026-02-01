@@ -1,17 +1,14 @@
 .timeline-view {
-  width: 90%;
   height: 100%;
   overflow-y: auto;
-  padding: 10px;
+  margin-bottom: 0px;
 }
 
 .timeline-chart-container {
-  background: #fff;
-  border-radius: 30px;
-  padding: 12px;
-  margin-bottom: 12px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.08);
-  width:90%;
+  height: 22%;   /* ≈ 4 charts visible */
+  min-height: 180px;  /* enough for title + plot */
+  padding-bottom: 8px;
+  
 }
 
 .timeline-selection-rect {

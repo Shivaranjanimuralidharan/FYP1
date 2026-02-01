@@ -1,25 +1,73 @@
 .sequence-view {
-  background: #fff;
-  padding: 16px;
-  border-radius: 12px;
-  box-shadow: 0 0 6px rgba(0,0,0,0.12);
-  margin-top: 20px;
+  height: 100%;
+  padding: 12px;
+  box-sizing: border-box;
+  background: #ffffff;
+  box-shadow: none;
+  border: none;
+  margin: 0;
 }
 
-.sequence-title {
-  font-size: 20px;
-  font-weight: 700;
-  margin-bottom: 12px;
-}
 
-.sequence-empty {
-  padding: 20px;
-  text-align: center;
-  color: #777;
-}
 
 .sequence-grid {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
+  flex-direction: row;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.sequence-card {
+  flex: 0 0 220px;   /* 🔑 fixed width → 5 cards fit */
+  background: #fff;
+}
+
+.sequence-scroll {
+  height: calc(100% - 36px);
+  overflow-x: auto;
+  overflow-y: hidden;
+  background: #fff; /* ✅ ADD */
+}
+
+/* Hide ugly scrollbar track (Chrome / Edge) */
+.sequence-scroll::-webkit-scrollbar {
+  height: 8px;
+}
+
+.sequence-scroll::-webkit-scrollbar-track {
+  background: #ffffff; /* ✅ THIS removes grey bar */
+}
+
+.sequence-scroll::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 4px;
+}
+
+
+.sequence-title {
+  font-size: 16px;       /* 🔽 smaller */
+  font-weight: 600;
+  margin-bottom: 6px;    /* 🔽 less vertical waste */
+}
+
+.sequence-empty {
+  flex: 1;                           /* 🔑 fill remaining space */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  border-radius: 12px;
+  background: #ffffff;               /* same as cards */
+  color: #777;
+  font-size: 14px;
+}
+
+
+.sequence-grid {
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 8px;
 }

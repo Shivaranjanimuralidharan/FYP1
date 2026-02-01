@@ -109,9 +109,13 @@ export default function TimelineView({
             ]}
             layout={{
               autosize: true,
-              height: 220,
-              margin: { l: 40, r: 20, t: 10, b: 30 }
+              height: 140,
+              margin: { l: 50, r: 20, t: 8, b: 30 },  // ⬅ more axis space
+              xaxis: { title: "", tickfont: { size: 10 } },
+              yaxis: { tickfont: { size: 10 } }
             }}
+
+
             config={{ displayModeBar: false }}
             useResizeHandler
             style={{ width: "100%" }}

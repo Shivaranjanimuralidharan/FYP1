@@ -1,12 +1,13 @@
 .sequence-card {
   background: #fff;
   border-radius: 12px;
-  padding: 10px;
-  box-shadow: 0 0 6px rgba(0,0,0,0.12);
-  margin-bottom: 12px;
+  padding: 8px;          /* 🔽 tighter */
+  /*box-shadow: 0 0 6px rgba(0,0,0,0.12);*/
   cursor: pointer;
-  transition: 0.2s;
+  min-height: 180px;     /* ✅ ensure space for description */
 }
+
+
 
 .sequence-card:hover {
   transform: scale(1.02);
@@ -34,24 +35,31 @@
 
 .sequence-card-thumb {
   width: 100%;
-  height: 100px;
+  height: 80px;              /* ⬅ smaller chart preview */
   object-fit: contain;
   background: #fafafa;
   border-radius: 6px;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .sequence-card-measure {
-  font-weight: 700;
-  margin-bottom: 6px;
+  font-weight: 600;
+  font-size: 13px; 
+  margin-bottom: 4px;
   color: #222;
 }
 
 .sequence-card-description {
   font-size: 13px;
-  color: #555;
-  line-height: 1.35;
+  color: #444;
+  line-height: 1.4;
+
+  display: -webkit-box;
+  -webkit-line-clamp: 3;   /* ⬅ show more text */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
+
 
 .sequence-card-add {
   cursor: pointer;
@@ -59,5 +67,6 @@
 }
 
 .suggestion-card {
-  border: 2px solid #4caf50;
+  border: 1px solid #ddd;
+  min-height: 200px;
 }

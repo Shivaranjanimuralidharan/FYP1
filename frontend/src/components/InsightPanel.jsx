@@ -73,40 +73,39 @@ export default function InsightPanel({
         {timestamps[safeRange.start]} → {timestamps[safeRange.end]}
       </div>
 
-      {/* MEASURE */}
-      <div className="insight-row">
-        <label>Measure</label>
-        <select
-          value={selectedMeasure}
-          onChange={(e) => setSelectedMeasure(e.target.value)}
-          className="insight-dropdown"
-        >
-          {measures.map((m) => (
-            <option key={m} value={m}>
-              {m}
-            </option>
-          ))}
-        </select>
-      </div>
+      <div className="insight-row insight-row-inline">
+  <div className="insight-col">
+    <label>Measure</label>
+    <select
+      value={selectedMeasure}
+      onChange={(e) => setSelectedMeasure(e.target.value)}
+      className="insight-dropdown"
+    >
+      {measures.map((m) => (
+        <option key={m} value={m}>{m}</option>
+      ))}
+    </select>
+  </div>
 
-      {/* TYPE */}
-      <div className="insight-row">
-        <label>Type</label>
-        <select
-          value={insightType}
-          onChange={(e) => setInsightType(e.target.value)}
-          className="insight-dropdown"
-        >
-          <option value="distribution">Distribution</option>
-          <option value="extreme">Extreme</option>
-          <option value="trend">Trend</option>
-          <option value="correlation">Correlation</option>
-          <option value="similarity">Similarity</option>
-          <option value="outlier">Outlier</option>
-          <option value="seasonality">Seasonality</option>
-          <option value="autocorrelation">Autocorrelation</option>
-        </select>
-      </div>
+  <div className="insight-col">
+    <label>Type</label>
+    <select
+      value={insightType}
+      onChange={(e) => setInsightType(e.target.value)}
+      className="insight-dropdown"
+    >
+      <option value="distribution">Distribution</option>
+      <option value="extreme">Extreme</option>
+      <option value="trend">Trend</option>
+      <option value="correlation">Correlation</option>
+      <option value="similarity">Similarity</option>
+      <option value="outlier">Outlier</option>
+      <option value="seasonality">Seasonality</option>
+      <option value="autocorrelation">Autocorrelation</option>
+    </select>
+  </div>
+</div>
+
 
       {/* BREAKDOWN */}
       <div className="insight-row">

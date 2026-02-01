@@ -186,3 +186,8 @@ background: lightgray;
   font-family: cursive;
   color: black
 }
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  background: #ffffff;
+}

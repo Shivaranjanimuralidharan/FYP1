@@ -1,23 +1,126 @@
 .dashboard-main {
-  padding: 10px;
-}
-
-.top-section {
   display: flex;
-  gap: 16px;
+  height: 100vh;
+  background: #ffffff;
 }
 
-.timeline-container {
-  width: 65%;
+body {
+  margin: 0;
+  background: #ffffff;
 }
 
-.right-panel {
-  width: 35%;
+
+.sequence-view {
+  background: #ffffff;
+  padding: 12px;
+  height: 100%;
+  width: 98%;
+  max-width: 98%;
+}
+
+.dashboard-main,
+.left-panel {
+  background: #ffffff;
+}
+
+
+.left-panel {
+  width: 75%;
+  height: 100%;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  background: #ffffff;     /* ✅ force white */
 }
 
-.sequence-section {
-  margin-top: 20px;
+
+/* Timeline on top */
+.timeline-container {
+  height: 60%;
+  overflow: hidden;
+  padding-bottom: 12px;
 }
+
+/* Sequence below */
+.sequence-container {
+  height: 40%;
+  overflow: hidden;
+  background: #ffffff;      /* same as page */
+  border: none;             /* remove any inherited border */
+  box-shadow: none;
+  padding: 0;          /* remove inherited padding */
+  margin: 0;  
+  width: 98%;
+  max-width: 98%;
+}
+
+/* RIGHT 25% FULL HEIGHT */
+.right-panel {
+  width: 25%;
+  height: 100vh;          /* 🔑 full screen height */
+  display: flex;
+  flex-direction: column;
+}
+
+/* Export pinned */
+.right-export {
+  height: 60px;
+  margin-top: auto;      /* 🔑 stick to bottom */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-top: 1px solid #eee;
+}
+
+
+
+.right-insight {
+  flex: 0 0 auto;     /* auto height */
+}
+
+.right-suggestions {
+  flex: 1;            /* 🔑 take remaining space */
+  overflow-y: auto;
+  min-height: 0;      /* 🔑 required for flex scroll */
+}
+
+
+
+
+
+
+/* ================= RIGHT PANEL SPLIT ================= */
+
+/* Insight panel: fixed, NOT scrollable */
+.right-panel > .insight-panel {
+  flex: 0 0 30%;
+  overflow: hidden;
+}
+
+/* Suggestion panel: scrollable & dominant */
+.right-panel > .suggestion-panel {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0; /* 🔑 critical for flex scrolling */
+}
+
+/* Export button pinned */
+.export-btn {
+  width: 90%;
+  padding: 10px;
+  background: #1976d2;        /* ✅ same blue */
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.export-btn:hover {
+  background: #125aa5;
+}
+
+
+
+
+

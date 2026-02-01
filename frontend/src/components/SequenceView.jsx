@@ -14,16 +14,17 @@ export default function SequenceView({ sequence, onSelectCard }) {
         <div className="sequence-empty">No insights generated yet.</div>
       )}
 
-
-      <div className="sequence-grid">
-        {sequence.map((card, idx) => (
-      <SequenceCard
-        key={idx}
-        card={card}
-        index={idx}
-        onSelect={onSelectCard}
-      />
-        ))}
+      <div className = "sequence-scroll"> 
+        <div className="sequence-grid">
+          {sequence.map((card, idx) => (
+        <SequenceCard
+          key={idx}
+          card={card}
+          index={idx}
+          onSelect={onSelectCard}
+        />
+          ))}
+        </div>
       </div>
     </div>
   );

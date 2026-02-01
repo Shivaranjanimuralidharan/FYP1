@@ -1,19 +1,46 @@
 .insight-panel {
+  height: 100%;
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  overflow: hidden;
+  padding: 12px;
+  box-sizing: border-box;
 }
 
-.insight-row {
+.panel-title {
+  font-size: 15px;
+  margin-bottom: 4px;
+}
+
+
+.insight-panel * {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+
+.insight-row-inline {
+  display: flex;
+  gap: 10px;
+}
+
+.insight-col {
+  flex: 1;
   display: flex;
   flex-direction: column;
 }
+
 
 .insight-row label {
-  font-size: 14px;
-  font-weight: 500;
-  margin-bottom: 6px;
+  font-size: 13px;
+  margin-bottom: 4px;
 }
+
+.insight-dropdown {
+  padding: 6px;
+  font-size: 13px;
+}
+
 
 .insight-row select {
   padding: 6px;
@@ -22,6 +49,7 @@
 }
 
 /* SUBSPACE TOGGLE */
+/*
 .subspace-toggle {
   width: 60px;
   height: 26px;
@@ -47,7 +75,12 @@
 
 .subspace-toggle .dot.active {
   background: white;
+}*/
+
+.range-slider input[type="range"] {
+  height: 16px;
 }
+
 
 /* BUTTONS */
 .insight-buttons {
@@ -67,4 +100,29 @@
 
 .insight-buttons button:hover {
   background: #125aa5;
+}
+
+.insight-row {
+  margin-bottom: 8px;
+}
+
+/* button row pinned inside panel */
+.insight-btn-row {
+  margin-top: auto;            /* 🔑 pushes button to bottom */
+  display: flex;
+}
+
+.btn-generate {
+  width: 100%;
+  padding: 10px;
+  background: #1976d2;
+  color: white;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+}
+
+.subspace-display {
+  font-size: 12px;
+  margin-bottom: 6px;
 }

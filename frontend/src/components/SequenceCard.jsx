@@ -7,7 +7,6 @@ export default function SequenceCard({ card, index, onSelect }) {
     <div className="sequence-card" onClick={() => onSelect(card, index)}>
       <div className="sequence-card-header">
         <span className="sequence-card-index">#{index + 1}</span>
-        <span className="sequence-card-type">{card.insight_type}</span>
       </div>
 
       {/* Thumbnail */}
