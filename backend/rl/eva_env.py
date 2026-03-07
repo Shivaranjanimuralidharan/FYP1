@@ -4,7 +4,6 @@ import random
 
 from datetime import timedelta
 
-# Action space (Table 1 from paper)
 ACTION_TYPES = [
     "CHANGE_TYPE",
     "SHIFT_FORWARD",
@@ -174,7 +173,7 @@ class EVAEnvironment:
         rcr = self._curiosity_raw(new_insight)
         rcd = self._curiosity_derived(new_insight)
 
-        # Eq. (7) from paper
+        
         return 0.4 * rf + 0.4 * rcr + 0.2 * rcd
 
     def _familiarity(self, new_insight):

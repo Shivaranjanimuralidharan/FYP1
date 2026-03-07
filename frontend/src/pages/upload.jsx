@@ -52,7 +52,7 @@ async function submitFile() {
     console.log("POST /api/preprocess status:", res.status, res.statusText);
     console.log("response headers:", Array.from(res.headers.entries()));
 
-    // read body as text first (safer). We'll attempt JSON.parse afterwards.
+    
     const text = await res.text();
     console.log("raw response body:", text);
 
@@ -62,7 +62,7 @@ async function submitFile() {
         data = JSON.parse(text);
       } catch (err) {
         console.warn("response is not valid JSON:", err);
-        // If response is printed as: "Detail: ..." or contains a run id, try to extract run_id with regex
+        
         const m = text.match(/"run_id"\s*:\s*"([^"]+)"/) || text.match(/run_id[:=]\s*([A-Za-z0-9_-]+)/);
         if (m) data = { run_id: m[1] };
       }
@@ -71,22 +71,22 @@ async function submitFile() {
     }
 
     if (!res.ok) {
-      // server returned non-200; include server text in thrown error
+    
       throw new Error(`Server returned ${res.status}: ${text}`);
     }
 
     if (!data || !data.run_id) {
-      // helpful error message: show what we got so you can paste it here
+      
       throw new Error("No run_id found in response. Server returned: " + (text || "<empty body>"));
     }
 
     const runId = data.run_id;
-    // Redirect (no react-router): go to dashboard with query param
+    
     window.location.href = `/dashboard?run_id=${encodeURIComponent(runId)}`;
 
   } catch (err) {
     console.error("upload error:", err);
-    // show a clearer message in UI
+    
     setError("Error while uploading or processing file: " + (err.message || "unknown"));
     setLoading(false);
   }

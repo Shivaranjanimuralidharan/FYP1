@@ -70,13 +70,11 @@ export default function Dashboard() {
   
 
   // -----------------------------
-  // ✨ Click card → populate Insight Panel
+  // Click card → populate Insight Panel
   // -----------------------------
   async function handleSelectCard(card) {
   setSelectedCard(card);
 
-  // Build minimal state vector (placeholder)
-  // In practice this comes from backend encoding
   const stateVector = new Array(128).fill(0);
 
   try {
@@ -102,7 +100,7 @@ export default function Dashboard() {
 }
 
   // -----------------------------
-  // 🔧 Generate Current Insight
+  //  Generate Current Insight
   // -----------------------------
   async function handleGenerateCurrent() {
     if (!selectedMeasure) return;
@@ -164,7 +162,7 @@ export default function Dashboard() {
 }
 
   // -----------------------------
-  // 🔄 Generate Subsequent Insights
+  // Generate Subsequent Insights
   // -----------------------------
   async function handleGenerateSubsequent() {
     const payload = {
@@ -231,29 +229,29 @@ export default function Dashboard() {
   async function handleStart() {
   setLoading(true);
 
-  // 1️⃣ Ask backend to render sequence
+  
   await fetch(`http://localhost:8000/api/render_sequence/${runId}`, {
     method: "POST",
   });
 
-  // 2️⃣ Poll until combined sequence exists
+  
   const poll = setInterval(async () => {
     try {
       const res = await fetch(
         `http://localhost:8000/api/${runId}/sequence/combined`
       );
 
-      if (!res.ok) return; // keep polling
+      if (!res.ok) return; 
 
       const data = await res.json();
 
-      // 3️⃣ NOW update UI
+      
       clearInterval(poll);
       setSequence(data.sequence);
 
-      setMode("insight");          // 🔑 move here
-      setShowInsightPanel(true);   // 🔑 move here
-      setLoading(false);           // 🔑 important
+      setMode("insight");          
+      setShowInsightPanel(true);   
+      setLoading(false);           
     } catch (err) {
       console.error("Polling error:", err);
     }

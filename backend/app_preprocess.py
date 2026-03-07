@@ -1,6 +1,4 @@
-# app_preprocess.py
-# FastAPI service to accept CSV uploads and run Algorithm 1 (data preprocessor).
-# Run with: uvicorn app_preprocess:app --reload --port 8000
+
 
 import os
 import shutil
@@ -16,7 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 #Profiler
 from fastapi import BackgroundTasks
-from time_series_profiler import profile_from_run_id    # function we added earlier
+from time_series_profiler import profile_from_run_id    
 import json
 
 #Segmenter
@@ -32,25 +30,25 @@ from insight_scorer import run_scoring_for_run, log_user_feedback
 
 from sequence_chart_renderer import (
     generate_annotated_charts,
-    render_single_chart,          # add this
+    render_single_chart,          
 )
 
 from insight_text_generator import (
     generate_text_descriptions,
-    generate_single_description,  # add this
+    generate_single_description,  
 )
 
-from eva_sequence_generator import generate_eva_sequence  # add this
+from eva_sequence_generator import generate_eva_sequence  
 
 
 
 from data_preprocessor_algo1 import run_preprocess 
 
-# For /api/data endpoint
+
 import pandas as pd
 import numpy as np
 
-#Mod2
+
 from rl.inference import PPOInferenceEngine
 from rl.eva_env import ACTION_TYPES
 
@@ -64,7 +62,7 @@ os.makedirs(OUT_BASE, exist_ok=True)
 
 app = FastAPI(title="Visail Preprocessing API")
 
-# Allow local frontend (vite default 5173) and other dev hosts
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -92,16 +90,16 @@ async def preprocess_csv(
     max_missing_ratio: float = Form(0.2),
 ):
    
-    # validate file
+    
     if not file.filename.lower().endswith(".csv"):
         raise HTTPException(status_code=400, detail="Only CSV files are accepted")
 
-    # create unique run dir
+    
     run_id = str(abs(hash(file.filename + str(os.urandom(8)))))[:12]
     run_out = os.path.join(OUT_BASE, run_id)
     os.makedirs(run_out, exist_ok=True)
 
-    # save uploaded file
+   
     uploaded_path = os.path.join(UPLOAD_DIR, f"{run_id}__{file.filename}")
     try:
         with open(uploaded_path, "wb") as buffer:
@@ -109,7 +107,7 @@ async def preprocess_csv(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to save uploaded file: {e}")
 
-    # Calling preprocessing function 
+    
     try:
         _ = run_preprocess(
             csv_path=uploaded_path,
@@ -133,19 +131,14 @@ async def preprocess_csv(
     preview_first_fp = os.path.join(run_out, "preview_first.csv")
     preview_last_fp = os.path.join(run_out, "preview_last.csv")
 
-    # Enqueue profiler as background task (non-blocking)
-    # This will create preproc_runs/<run_id>/profiler.json when done
+    
     background_tasks.add_task(run_profiler_task, run_id, OUT_BASE)
-        # Enqueue segmenter task as well: it will wait for profiler.json (or timeout) then run segmentation
+       
     background_tasks.add_task(run_segmenter_task, run_id, OUT_BASE, 300, 2.0, None)
-        # Enqueue scoring task (will wait for segments.json)
+        
     background_tasks.add_task(run_scoring_task, run_id, OUT_BASE, 300, 2.0)
     background_tasks.add_task(run_sequence_renderer_task, run_id, OUT_BASE)
 
-
-
-
-    # Check which artifacts exist
     artifacts = {
         "cleaned_path": f"/api/download/{run_id}/cleaned_df.parquet" if os.path.exists(cleaned_fp) else None,
         "metadata_path": f"/api/download/{run_id}/metadata.json" if os.path.exists(metadata_fp) else None,
@@ -162,7 +155,6 @@ async def preprocess_csv(
     if missing:
         resp["warning"] = f"Preprocessing completed but these expected artifacts are missing: {missing}"
 
-    # Try to include kept/dropped columns from metadata.json if it exists
     if os.path.exists(metadata_fp):
         try:
             with open(metadata_fp, "r", encoding="utf-8") as fh:
@@ -174,10 +166,10 @@ async def preprocess_csv(
             if dropped_cols is not None:
                 resp["dropped_columns"] = dropped_cols
         except Exception:
-            # ignore metadata parsing errors (metadata is optional)
+        
             pass
 
-    # Always return JSON (prevents empty response body)
+    
     return JSONResponse(content=resp)
 
 
@@ -207,16 +199,16 @@ def run_profiler_task(run_id: str, base_dir: str):
     Meant to be used with BackgroundTasks (non-blocking for the request).
     """
     try:
-        profiler = profile_from_run_id(run_id, base_dir)   # loads cleaned_df.parquet and profiles
+        profiler = profile_from_run_id(run_id, base_dir)   
         out_folder = os.path.join(base_dir, run_id)
         os.makedirs(out_folder, exist_ok=True)
         profiler_path = os.path.join(out_folder, "profiler.json")
         with open(profiler_path, "w", encoding="utf-8") as fh:
             json.dump(profiler, fh, indent=2, default=lambda o: o if isinstance(o, (str,int,float,bool)) else str(o))
-        # optionally: log success
+        
         print(f"[profiler] saved profiler for run {run_id} -> {profiler_path}")
     except Exception as e:
-        # log the error; do not raise (background tasks lost otherwise)
+        
         print(f"[profiler] failed for run {run_id}: {e}")
 
 def run_segmenter_task(run_id: str, base_dir: str, wait_timeout: int = 300, poll_interval: float = 2.0, config: Optional[Dict[str, Any]] = None):
@@ -231,18 +223,18 @@ def run_segmenter_task(run_id: str, base_dir: str, wait_timeout: int = 300, poll
     cleaned_path = os.path.join(run_out, "cleaned_df.parquet")
     start = time.time()
 
-    # Wait until cleaned data exists (should already) and profiler (preferable)
+    
     while True:
         if os.path.exists(cleaned_path) and (os.path.exists(profiler_path) or (time.time() - start) > wait_timeout):
             break
         time.sleep(poll_interval)
 
-    # Now run segmentation (load cleaned_df inside function)
+    
     try:
         segs, segs_path = segment_from_run_id(run_id, base_dir, config=config)
         print(f"[segmenter] saved segments for run {run_id} -> {segs_path}")
     except Exception as e:
-        # log error, don't raise (background)
+        
         print(f"[segmenter] failed for run {run_id}: {e}")
 
 # ----------------------------
@@ -263,36 +255,36 @@ def read_cleaned_df_to_timeseries(run_id: str, max_points: int = 5000):
     if not os.path.exists(cleaned_path):
         raise FileNotFoundError("cleaned_df.parquet not found for run_id")
 
-    # Read parquet (requires pyarrow or fastparquet installed)
+    
     df = pd.read_parquet(cleaned_path)
 
-    # Ensure datetime index
+    
     if not isinstance(df.index, pd.DatetimeIndex):
         try:
             df.index = pd.to_datetime(df.index)
         except Exception:
-            # if conversion fails keep original index but convert timestamps to strings later
+            
             pass
     df = df.sort_index()
 
-    # If too many points, pick evenly spaced indices
+    
     n = len(df)
     if n > max_points:
         idx = np.linspace(0, n - 1, max_points).astype(int)
         df = df.iloc[idx]
 
-    # Convert timestamps to ISO strings
+    
     try:
         timestamps = [ts.isoformat() for ts in df.index.to_pydatetime()]
     except Exception:
-        # fallback: str()
+        
         timestamps = [str(ts) for ts in df.index.tolist()]
 
-    # Select numeric columns
+   
     numeric_cols = df.select_dtypes(include=["number"]).columns.tolist()
     data = {}
     for c in numeric_cols:
-        # convert numpy types to native python types; fill NaN with None for JSON
+        
         col_vals = df[c].where(df[c].notna(), None).tolist()
         data[c] = col_vals
 
@@ -337,7 +329,7 @@ def run_sequence_renderer_task(run_id: str, base_dir: str):
 
     generate_annotated_charts(eva_seq, df, charts_dir)
 
-    # inject df so text generator can compute facts
+    
     for seg in eva_seq:
         seg["_df"] = df  
 
@@ -397,12 +389,12 @@ def score_segments(run_id: str):
     with open(scores_path, "r") as f:
         scores = json.load(f)
 
-    # If topk not saved, return all sorted scores
+    
     if os.path.exists(topk_path):
         with open(topk_path, "r") as f:
             topk = json.load(f)
     else:
-        topk = scores[:50]   # default top‑50
+        topk = scores[:50]   
 
     return {"top_k": topk}
 
@@ -419,7 +411,7 @@ async def generate_one_insight(run_id: str, payload: dict):
     breakdown = payload["breakdown"]
     subspace = payload.get("subspace")
 
-    # Convert subspace indices → timestamps
+    
     if subspace:
         timestamps = df.index.tolist()
         start = timestamps[subspace["start"]]
@@ -427,7 +419,7 @@ async def generate_one_insight(run_id: str, payload: dict):
     else:
         start, end = df.index.min(), df.index.max()
 
-    # Build EVA-style segment (THIS IS KEY)
+    
     segment = {
         "measure": measure,
         "insight_type": ins_type,
@@ -439,14 +431,14 @@ async def generate_one_insight(run_id: str, payload: dict):
     charts_folder = os.path.join(run_folder, "annotated_charts")
     os.makedirs(charts_folder, exist_ok=True)
 
-    # ✅ UNIQUE filename per request
+   
     uid = uuid.uuid4().hex[:8]
     filename = f"interactive_{uid}_{measure}_{ins_type}.png"
 
-    # ✅ Render EXACTLY ONE annotated EVA chart
+    
     generate_annotated_charts([segment], df, charts_folder, filename_override=filename)
 
-    # Text description matches the same segment
+    
     description = generate_single_description(segment, df)
 
     return {
@@ -457,7 +449,7 @@ async def generate_one_insight(run_id: str, payload: dict):
 
 
 
-    # Module 3.1 — annotated chart
+    # Module 3.1
     charts_folder = os.path.join(run_folder, "annotated_charts")
     os.makedirs(charts_folder, exist_ok=True)
 
@@ -470,7 +462,7 @@ async def generate_one_insight(run_id: str, payload: dict):
     )
 
 
-    # Module 3.2 — description
+    # Module 3.2
     description = generate_single_description(insight, df)
 
     card = {
@@ -504,7 +496,7 @@ async def generate_subsequent(run_id: str, payload: dict):
         "subspace": subspace
     }
 
-    # Module 3 — generate full EVA sequence
+    # Module 3
     new_sequence = generate_eva_sequence(df, modified_template)
 
     charts_folder = os.path.join(run_folder, "annotated_charts")
@@ -560,7 +552,7 @@ def get_combined_sequence(run_id: str):
     with open(topk_path, "r") as f:
         segments = json.load(f)
 
-    # descriptions may not exist yet
+    
     descriptions = []
     if os.path.exists(desc_path):
         with open(desc_path, "r") as f:
@@ -570,16 +562,16 @@ def get_combined_sequence(run_id: str):
 
     for idx, seg in enumerate(segments):
 
-        # Ensure insight_type exists (your inference logic already sets it)
+        
         insight_type = seg.get("insight_type", "unknown")
 
-        # Find chart
+        
         expected_file = f"chart_{idx}_{insight_type}.png"
         chart_path = os.path.join(charts_folder, expected_file)
 
-        # If missing, fallback to *any* file for that index
+        
         if not os.path.exists(chart_path):
-            # find something like chart_0_*.png
+            
             candidates = [
                 f for f in os.listdir(charts_folder)
                 if f.startswith(f"chart_{idx}_")
@@ -590,7 +582,7 @@ def get_combined_sequence(run_id: str):
             else:
                 expected_file = None
 
-        # Get description
+        
         description = descriptions[idx] if idx < len(descriptions) else "Description not available."
 
         combined.append({
@@ -618,7 +610,7 @@ def get_alternatives(payload: dict):
 
     metadata_path = os.path.join(OUT_BASE, run_id, "metadata.json")
 
-    # ✅ create RL engine
+    
     ppo_engine = PPOInferenceEngine(
         state_dim=128,
         action_dim=len(ACTION_TYPES),
@@ -628,7 +620,7 @@ def get_alternatives(payload: dict):
     charts_folder = os.path.join(run_folder, "annotated_charts")
     os.makedirs(charts_folder, exist_ok=True)
 
-    # RL propose alternatives
+    
     rl_alternatives = ppo_engine.get_alternate_insights(
         state_vector,
         clicked_insight
@@ -649,7 +641,7 @@ def get_alternatives(payload: dict):
         }
 
         # ----------------------------------
-        # APPLY SHIFT ACTION (if any)
+        # APPLY SHIFT ACTION 
         # ----------------------------------
         shift = insight.get("shift")
 
@@ -667,7 +659,7 @@ def get_alternatives(payload: dict):
             else:
                 new_start, new_end = start, end
 
-            # clamp to dataset bounds
+            
             min_t = df.index.min()
             max_t = df.index.max()
 

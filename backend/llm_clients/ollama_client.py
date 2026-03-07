@@ -1,5 +1,3 @@
-# backend/llm_clients/ollama_client.py
-
 import requests
 
 
@@ -16,7 +14,7 @@ class OllamaClient:
             "options": {
                 "temperature": 0.3,
                 "top_p": 0.9,
-                "num_predict": 800   # HARD CAP (important)
+                "num_predict": 800   
             }
         }
 

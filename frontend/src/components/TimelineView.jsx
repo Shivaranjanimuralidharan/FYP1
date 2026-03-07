@@ -13,12 +13,12 @@ export default function TimelineView({
 }) {
   const containerRef = useRef(null);
 
-  // Drag selection state
+ 
   const [dragStartX, setDragStartX] = useState(null);
   const [dragging, setDragging] = useState(false);
   const [rectStyle, setRectStyle] = useState(null);
 
-  // Convert pixel → timestamp
+  
   function pixelToTime(xPixel) {
     const box = containerRef.current?.getBoundingClientRect();
     if (!box) return null;
@@ -55,7 +55,7 @@ export default function TimelineView({
     });
   }
 
-  // End drag → convert selection to timestamps
+  
   function handleMouseUp(e) {
     if (!dragging || !subspaceEnabled) return;
 
@@ -73,7 +73,7 @@ export default function TimelineView({
     setRectStyle(null);
   }
 
-  // Listen globally for mouseup
+  
   useEffect(() => {
     function up(e) {
       if (dragging) handleMouseUp(e);
@@ -110,7 +110,7 @@ export default function TimelineView({
             layout={{
               autosize: true,
               height: 140,
-              margin: { l: 50, r: 20, t: 8, b: 30 },  // ⬅ more axis space
+              margin: { l: 50, r: 20, t: 8, b: 30 },  
               xaxis: { title: "", tickfont: { size: 10 } },
               yaxis: { tickfont: { size: 10 } }
             }}

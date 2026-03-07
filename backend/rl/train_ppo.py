@@ -10,13 +10,13 @@ from ppo_policy import PPOAgent
 # -----------------------------
 # CONFIGURATION (paper-aligned)
 # -----------------------------
-DATASET_PATH = "./uploads1/covid_timeseries.csv"   # same dataset as paper
+DATASET_PATH = "./uploads1/covid_timeseries.csv"   
 SAVE_PATH = "ppo_weights.pt"
 
-MAX_EPISODE_LENGTH = 5        # N = 5 (paper)
+MAX_EPISODE_LENGTH = 5        
 TOTAL_TRAINING_STEPS = 100_000
-GAMMA = 0.9                   # discount factor
-UPDATE_EVERY = 2048           # PPO rollout size
+GAMMA = 0.9                   
+UPDATE_EVERY = 2048           
 BATCH_SIZE = 64
 EPOCHS = 10
 LEARNING_RATE = 3e-4
@@ -29,13 +29,13 @@ def train():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Training on device: {device}")
 
-    # 1️⃣ Create EVA environment (MDP)
+    # Create EVA environment (MDP)
     env = EVAEnvironment(
         dataset_path=DATASET_PATH,
         max_steps=MAX_EPISODE_LENGTH
     )
 
-    # 2️⃣ Initialize PPO agent
+    # Initialize PPO agent
     agent = PPOAgent(
         state_dim=env.state_dim,
         action_dim=env.action_dim,
@@ -47,19 +47,19 @@ def train():
     state = env.reset()
     step_count = 0
 
-    # Buffers for PPO rollout
+    
     states, actions, rewards, dones, log_probs = [], [], [], [], []
 
     for step in trange(TOTAL_TRAINING_STEPS, desc="PPO Training"):
         step_count += 1
 
-        # 3️⃣ Agent selects action
+        # Agent selects action
         action, log_prob = agent.select_action(state)
 
-        # 4️⃣ Environment transition
+        # Environment transition
         next_state, reward, done, info = env.step(action)
 
-        # 5️⃣ Store transition
+        # Store transition
         states.append(state)
         actions.append(action)
         rewards.append(reward)
@@ -68,11 +68,11 @@ def train():
 
         state = next_state
 
-        # 6️⃣ Episode ended → reset environment
+        # Episode ended → reset environment
         if done:
             state = env.reset()
 
-        # 7️⃣ PPO update step
+        # PPO update step
         if step_count % UPDATE_EVERY == 0:
             agent.update(
                 states=states,
@@ -87,7 +87,7 @@ def train():
             # Clear buffers
             states, actions, rewards, dones, log_probs = [], [], [], [], []
 
-    # 8️⃣ Save trained weights
+    # Save trained weights
     torch.save(
         {
             "actor": agent.actor.state_dict(),

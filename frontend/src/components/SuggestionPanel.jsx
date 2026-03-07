@@ -2,13 +2,12 @@
 import React from "react";
 import "../styles/suggestion.css";
 
-// src/components/SuggestionPanel.jsx
 
 import SuggestionCard from "./SuggestionCard";
 
 
 export default function SuggestionPanel({ suggestions = [], onSelect }) {
-  // 🛑 HARD GUARD
+  
   if (!Array.isArray(suggestions) || suggestions.length === 0) {
     return (
       <div className="suggestion-panel empty">
@@ -20,7 +19,7 @@ export default function SuggestionPanel({ suggestions = [], onSelect }) {
   return (
     <div className="suggestion-panel">
       {suggestions.map((item, idx) => {
-        // 🛑 PER-ITEM GUARD
+        
         if (!item || !item.insight) return null;
 
         const insight = item.insight;

@@ -6,7 +6,7 @@ import pandas as pd
 import numpy as np
 from typing import List, Dict, Any
 
-plt.switch_backend("Agg")   # enable server-side rendering
+plt.switch_backend("Agg")   
 
 
 def infer_insight_type(seg):
@@ -15,15 +15,15 @@ def infer_insight_type(seg):
     """
     scores = seg.get("insight_scores", {})
     if not scores:
-        return "trend"  # safe fallback
+        return "trend"  
 
-    # 1. Get max score value
+    
     max_score = max(scores.values())
 
-    # 2. Collect all insight types that have this score
+    
     tied = [k for k, v in scores.items() if v == max_score]
 
-    # 3. Tie‑break priority (you can adjust if needed)
+    
     priority = [
         "trend",
         "seasonality",
@@ -35,12 +35,12 @@ def infer_insight_type(seg):
         "outlier",
     ]
 
-    # pick first matching by priority
+   
     for p in priority:
         if p in tied:
             return p
 
-    return tied[0]  # fallback
+    return tied[0]  
 
 # -------------------------------------------------------------------
 #  Insight-specific overlay drawing
@@ -110,7 +110,7 @@ def fix_y_axis(ax, sub):
 
     ax.set_ylim(ymin, ymax)
 
-    # Disable scientific notation & offsets
+    
     ax.ticklabel_format(style="plain", axis="y")
     ax.get_yaxis().get_major_formatter().set_useOffset(False)
 
@@ -141,7 +141,7 @@ def generate_annotated_charts(eva_sequence, raw_df, out_dir, filename_override=N
 
         measure = seg["measure"]
 
-        # ✅ fix insight type safely
+        
         insight_type = seg.get("insight_type")
 
         if insight_type not in VALID_INSIGHTS:
@@ -166,10 +166,10 @@ def generate_annotated_charts(eva_sequence, raw_df, out_dir, filename_override=N
 
         ax.plot(sub.index, sub.values, color="#446FA5", linewidth=1.6)
 
-        # ✅ fix y scale
+        
         fix_y_axis(ax, sub)
 
-        # ✅ overlay insight markers
+       
         overlay_insight(ax, sub, insight_type, facts)
 
         ax.set_title(f"{measure} — {insight_type.capitalize()}")
@@ -177,7 +177,7 @@ def generate_annotated_charts(eva_sequence, raw_df, out_dir, filename_override=N
         plt.xticks(rotation=30)
         plt.tight_layout()
 
-        # ✅ filename logic
+        
         if filename_override:
             filename = filename_override
         else:
@@ -200,7 +200,7 @@ def render_single_chart(insight, df, folder, filename="single.png"):
     """
     path = os.path.join(folder, filename)
 
-    # TODO: Replace with real annotated chart rendering
+    
     import matplotlib.pyplot as plt
 
     measure = insight["measure"]

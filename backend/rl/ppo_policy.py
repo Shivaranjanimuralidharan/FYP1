@@ -21,9 +21,9 @@ class LSTMEncoder(nn.Module):
         )
 
     def forward(self, x):
-        # x: (batch, seq_len, input_dim)
+        
         _, (h_n, _) = self.lstm(x)
-        return h_n[-1]  # final hidden state
+        return h_n[-1]  
 
 
 # -------------------------
@@ -121,14 +121,14 @@ class PPOAgent:
         PPO policy update (offline training only)
         """
 
-        # Convert rollout data to tensors
+        
         states = torch.tensor(
             np.array(states), dtype=torch.float32
         ).to(self.device)
 
         actions = torch.tensor(actions, dtype=torch.long).to(self.device)
 
-        # IMPORTANT: detach old log probs
+        
         old_log_probs = torch.stack(log_probs).detach().to(self.device)
 
         # -------------------------
@@ -149,7 +149,7 @@ class PPOAgent:
         # -------------------------
         # Advantage estimation
         # -------------------------
-       # Compute advantages ONCE using detached values
+       
         with torch.no_grad():
             values_old = self.critic(states).squeeze()
             advantages = returns - values_old
@@ -171,7 +171,7 @@ class PPOAgent:
 
             actor_loss = -torch.min(surr1, surr2).mean()
 
-            # --- Critic (RECOMPUTE values here) ---
+            # --- Critic ---
             values = self.critic(states).squeeze()
             critic_loss = nn.MSELoss()(values, returns)
 

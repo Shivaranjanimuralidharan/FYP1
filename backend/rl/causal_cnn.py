@@ -23,9 +23,8 @@ class CausalConv1d(nn.Module):
         )
 
     def forward(self, x):
-        # x: (batch, channels, seq_len)
         padding = (self.kernel_size - 1) * self.dilation
-        x = F.pad(x, (padding, 0))  # pad only on the left (causal)
+        x = F.pad(x, (padding, 0))  
         return self.conv(x)
 
 

@@ -18,19 +18,19 @@ def robust_mad_zscore(series: pd.Series):
     med = np.median(s)
     mad = np.median(np.abs(s - med))
     if mad == 0:
-        # fallback to std zscore
+       
         std = s.std(ddof=0) if s.std(ddof=0) != 0 else 1.0
         z = (series - med) / std
         return z
     else:
-        return (series - med) / (mad * 1.4826)  # approx conversion to std
+        return (series - med) / (mad * 1.4826)  
 
 def detect_peaks(series: pd.Series, distance: int = 1, prominence: float = None):
     """Return indices of peaks and prominences using scipy.find_peaks."""
     arr = series.fillna(method="ffill").fillna(method="bfill").values
     if len(arr) == 0:
         return []
-    # choose prominence if not given
+    
     if prominence is None:
         prominence = (np.nanstd(arr) + 1e-9) * 0.5
     peaks, props = find_peaks(arr, distance=distance, prominence=prominence)
@@ -42,12 +42,12 @@ def ols_trend(series: pd.Series):
     s = series.dropna()
     if len(s) < 2:
         return (0.0, float(s.mean() if not s.empty else 0.0)), pd.Series(index=series.index, data=np.nan)
-    # use integer time steps from 0..n-1 for stability
+    
     t = np.arange(len(s))
-    a, b = np.polyfit(t, s.values, 1)  # slope, intercept in value space vs index
-    # create a trend aligned to original index (interpolated for missing points)
+    a, b = np.polyfit(t, s.values, 1)  
+    
     full_t = pd.Series(np.nan, index=series.index)
-    # map index positions for non-nulls
+    
     idxs = np.where(~series.isna())[0]
     trend_vals = a * np.arange(len(idxs)) + b
     full_t.iloc[idxs] = trend_vals
@@ -63,14 +63,13 @@ def strongest_periods(series: pd.Series, fs=1.0, top_n=3):
     if len(s) < 3:
         return []
     f, Pxx = signal.periodogram(s.values, fs=fs, detrend="linear", scaling="spectrum")
-    # ignore DC (f==0)
+    
     mask = f > 0
     f = f[mask]
     Pxx = Pxx[mask]
     if len(f) == 0:
         return []
-    # convert frequency -> period (1/f)
-    # avoid zero-frequency; sort by power
+    
     idx = np.argsort(Pxx)[::-1]
     res = []
     for i in idx[:top_n]:
@@ -119,16 +118,16 @@ def profile_timeseries(df: pd.DataFrame, config: Optional[Dict[str, Any]] = None
     Input: df (index must be datetime-like), config (dict)
     Output: profiler dict P
     """
-    # Default configuration
+    
     default_C = {
         "min_points": 20,
-        "stl_period": None,         # If None, STL will infer (or we'll feed seasonal=13 for weekly-like)
+        "stl_period": None,         
         "period_candidates_topn": 3,
         "acf_max_lag": 40,
         "peak_min_distance": 3,
-        "peak_prominence": None,    # if None, computed adaptively per series
+        "peak_prominence": None,    
         "outlier_mad_thresh": 3.5,
-        "downsample_for_periodogram": 0,  # 0 means no downsample
+        "downsample_for_periodogram": 0,  
     }
     C = default_C if config is None else {**default_C, **config}
 
@@ -139,7 +138,7 @@ def profile_timeseries(df: pd.DataFrame, config: Optional[Dict[str, Any]] = None
         try:
             df.index = pd.to_datetime(df.index)
         except Exception:
-            # Can't ensure time index — still allow profiling but warn in summary
+            
             time_index_ok = False
         else:
             time_index_ok = True
@@ -177,27 +176,25 @@ def profile_timeseries(df: pd.DataFrame, config: Optional[Dict[str, Any]] = None
 
         # Trend via OLS
         (slope_int, intercept), trend_series = ols_trend(s)
-        # detrended (only where trend exists)
+        # detrended 
         sdetr = s.copy()
         mask_nonnull = ~s.isna()
         sdetr[mask_nonnull] = s[mask_nonnull] - trend_series[mask_nonnull]
 
-        # Period candidates via periodogram (regular sampling assumed)
-        # optionally downsample for speed
+        
         period_candidates = strongest_periods(s, fs=1.0, top_n=C["period_candidates_topn"])
 
-        # STL decomposition (if enough points). Use candidate period if provided, else fallback.
+        # STL decomposition
         stl_res = {"trend": [], "seasonal": [], "resid": [], "seasonality_strength": None}
         try:
-            # choose period for STL: if provided in config use it; else try first candidate period rounded.
+           
             stl_period = C["stl_period"]
             if stl_period is None and len(period_candidates) > 0:
-                # use nearest integer > 1
+                
                 candidate = int(round(period_candidates[0][0]))
                 if candidate >= 2:
                     stl_period = candidate
-            # if still None and index frequency exists and is seasonal choose 7 or 12 heuristics could be used,
-            # but we proceed only if stl_period is valid integer >=2
+            
             if stl_period is not None and stl_period >= 2 and len(snz) >= max(2*stl_period, 10):
                 stl = STL(snz, period=stl_period, robust=True)
                 stlres = stl.fit()
@@ -212,7 +209,7 @@ def profile_timeseries(df: pd.DataFrame, config: Optional[Dict[str, Any]] = None
                     "period": stl_period,
                 }
         except Exception:
-            # safe fallback: leave stl_res as default
+            
             stl_res = stl_res
 
         # ACF and ADF
@@ -233,7 +230,7 @@ def profile_timeseries(df: pd.DataFrame, config: Optional[Dict[str, Any]] = None
         outlier_mask = (zscore.abs() > mad_thresh)
         outliers = []
         for idx in np.where(outlier_mask)[0]:
-            # idx is positional index, map to label
+           
             try:
                 label = s.index[idx]
                 outliers.append({"pos": int(idx), "index": str(label), "value": float(s.iloc[idx]), "z": float(zscore.iloc[idx])})
@@ -277,8 +274,7 @@ def profile_timeseries(df: pd.DataFrame, config: Optional[Dict[str, Any]] = None
 
         P["per_measure"][m] = measure_profile
 
-    # Global summary across measures
-    # compute simple aggregated metrics
+    
     n_profiles = len(P["per_measure"])
     vars_zero = sum(1 for mv in P["per_measure"].values() if (not mv.get("skipped", True)) and mv["basic_stats"]["var"] == 0.0)
     avg_missing = np.mean([mv["basic_stats"]["missing_ratio"] for mv in P["per_measure"].values() if (not mv.get("skipped", True))]) if n_profiles > 0 else 0.0

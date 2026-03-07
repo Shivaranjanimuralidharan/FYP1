@@ -1,4 +1,3 @@
-# segmenter.py
 """
 Segmentation engine for Visail (Algorithm 3) with 8 insight-type scoring.
 Usage:
@@ -20,7 +19,7 @@ from scipy.signal import find_peaks, periodogram
 from scipy.stats import pearsonr
 import matplotlib.pyplot as plt
 
-# try import statsmodels ACF for better autocorr; fallback is provided
+
 try:
     from statsmodels.tsa.stattools import acf as sm_acf
 except Exception:
@@ -37,11 +36,10 @@ def time_iou(start_a, end_a, start_b, end_b):
     try:
         inter = max(0.0, (inter_end - inter_start).total_seconds())
         union_start = min(start_a, start_b)
-        union_end = max(end_a, union_end := end_b)  # preserve naming for clarity
+        union_end = max(end_a, union_end := end_b)  
         union = max(1e-9, (union_end - union_start).total_seconds())
         return inter / union
     except Exception:
-        # fallback to index numeric difference if timestamps incompatible
         try:
             inter = max(0.0, float(inter_end) - float(inter_start))
             union = max(1e-9, float(union_end) - float(union_start))
@@ -100,7 +98,7 @@ def sliding_window_candidates(series: pd.Series,
                     "start": seg.index[0],
                     "end": seg.index[-1],
                     "window": w,
-                    "raw_series": seg.copy(),  # kept temporarily for feature computation
+                    "raw_series": seg.copy(),  
                     "priority_score": float(seg.var()) if seg.var() is not None else 0.0
                 }
                 candidates.append(candidate)
@@ -116,7 +114,7 @@ def compute_segment_features(seg: Dict[str, Any], cfg: Dict[str, Any]) -> Dict[s
     features["missing_ratio"] = float(s.isna().mean())
     features["variance"] = float(sub.var(ddof=0)) if sub.size > 0 else 0.0
 
-    # OLS slope (use integer time indices)
+    # OLS slope 
     if len(sub) >= 2:
         t = np.arange(len(sub))
         try:
@@ -127,7 +125,7 @@ def compute_segment_features(seg: Dict[str, Any], cfg: Dict[str, Any]) -> Dict[s
     else:
         features["trend_slope"] = 0.0
 
-    # peaks (on smoothed series)
+    # peaks 
     try:
         window_for_smooth = min(5, max(1, int(len(s)//10)))
         smoothed = s.rolling(window=window_for_smooth, min_periods=1, center=True).median().fillna(method="ffill").fillna(method="bfill")
@@ -161,7 +159,7 @@ def compute_segment_features(seg: Dict[str, Any], cfg: Dict[str, Any]) -> Dict[s
     except Exception:
         features["outlier_count"] = 0
 
-    # placeholder for seasonality strength (may be filled by profiler later)
+    
     features["seasonality_strength"] = None
     features["novelty_score"] = None
 
@@ -202,7 +200,7 @@ def merge_segments(segments: List[Dict[str, Any]], iou_thresh: float, merge_rule
                         "priority_score": new_priority
                     }
                 elif merge_rule == "keep_best":
-                    # keep existing, nothing to do (we process by priority)
+                    
                     pass
                 break
         if not merged_flag:
@@ -249,7 +247,7 @@ def compute_insight_scores(seg: Dict[str, Any], df: pd.DataFrame, profiler: Opti
     sub = series.dropna()
     n = max(1, len(sub))
 
-    # global stats (prefer profiler info)
+    # global stats 
     global_var = None
     global_std = None
     global_mean = None
@@ -394,7 +392,7 @@ def compute_insight_scores(seg: Dict[str, Any], df: pd.DataFrame, profiler: Opti
 # ---------------------------
 
 DEFAULT_CONFIG = {
-    "scales": [30, 60, 120],       # window sizes in points
+    "scales": [30, 60, 120],       
     "step_ratio": 0.5,
     "min_points": 10,
     "max_seg_missing": 0.2,
@@ -426,12 +424,12 @@ def segment_from_dataframe(df: pd.DataFrame, profiler: Optional[Dict[str, Any]] 
         candidates = sliding_window_candidates(series, measure, scales, step_ratio, min_points, max_seg_missing)
         all_candidates.extend(candidates)
 
-    # optional change-point branch: left as hook (user can supply CPD implementation)
+    
     if cfg.get("use_changepoint", False):
-        # Placeholder for CPD-based segments (e.g., using ruptures). Not implemented by default.
+        
         pass
 
-    # Compute per-segment features, insight scores & prepare thumbnails later
+    
     segments: List[Dict[str, Any]] = []
     for i, c in enumerate(all_candidates):
         seg = c.copy()
@@ -440,10 +438,10 @@ def segment_from_dataframe(df: pd.DataFrame, profiler: Optional[Dict[str, Any]] 
         seg["_thumbnail_temp"] = None
         segments.append(seg)
 
-    # Merge overlapping segments
+    
     merged = merge_segments(segments, iou_thresh=cfg["merge_iou"], merge_rule=cfg["merge_rule"])
 
-    # Recompute features & insight scores for merged segments where raw_series may have changed
+    
     for seg in merged:
         if "raw_series" in seg and seg["raw_series"] is not None:
             seg["features"] = compute_segment_features(seg, cfg)
@@ -453,7 +451,7 @@ def segment_from_dataframe(df: pd.DataFrame, profiler: Optional[Dict[str, Any]] 
     feature_keys = ["variance", "n_points", "n_peaks", "outlier_count", "trend_slope"]
     normalize_segment_features(merged, feature_keys)
 
-    # Build final metadata list (drop heavy raw_series, include features & insight_scores)
+   
     final_segments = []
     for idx, seg in enumerate(merged):
         meta = {
@@ -484,7 +482,7 @@ def segment_from_run_id(run_id: str, base_dir: str, config: Optional[Dict[str, A
     # load dataframe
     df = pd.read_parquet(cleaned_path)
 
-    # load profiler if available
+    # load profiler
     profiler = None
     profiler_path = os.path.join(run_out, "profiler.json")
     if os.path.exists(profiler_path):
@@ -528,7 +526,7 @@ def segment_from_run_id(run_id: str, base_dir: str, config: Optional[Dict[str, A
 
     return final_meta_list, segments_path
 
-# If executed directly for debugging
+
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()

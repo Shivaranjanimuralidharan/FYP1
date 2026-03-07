@@ -35,7 +35,7 @@ class PPOInferenceEngine:
         # -----------------------------
         self.action_space = ACTION_TYPES
 
-        # insight types are semantic — safe to keep
+        
         self.insight_types = [
             "trend",
             "distribution",
@@ -134,7 +134,7 @@ class PPOInferenceEngine:
         elif action == "REMOVE_AGGREGATE":
             new_insight["breakdown"] = "day"
 
-        # SHIFT — keep measure same, backend will adjust window
+        # SHIFT 
         elif action == "SHIFT_FORWARD":
             new_insight["shift"] = "forward"
 

@@ -1,4 +1,4 @@
-# insight_scorer.py
+
 """
 Module 1.4: Insight Scoring & User Override Handler.
 
@@ -16,7 +16,7 @@ import time
 import numpy as np
 from typing import List, Dict, Any, Optional
 
-# default configuration & weights
+
 DEFAULT_CFG = {
     "alpha_features": 0.6,
     "beta_insights": 0.4,
@@ -24,7 +24,7 @@ DEFAULT_CFG = {
     "min_points_for_quality": 5,
     "max_missing_allowed": 0.5,
     "top_k": 10,
-    # structural feature weights (must sum to 1)
+    
     "wF": {
         "trend_abs": 0.20,
         "seasonality": 0.15,
@@ -34,7 +34,7 @@ DEFAULT_CFG = {
         "missing_inv": 0.10,
         "novelty": 0.20
     },
-    # insight weights (8 insights; must sum to 1)
+    
     "wI": {
         "distribution": 0.12,
         "extreme": 0.08,
@@ -45,10 +45,10 @@ DEFAULT_CFG = {
         "seasonality": 0.24,
         "autocorrelation": 0.14
     },
-    # online update parameters
-    "feedback_update_rate": 0.05,  # how much to nudge weights on user accept/reject
+    
+    "feedback_update_rate": 0.05,  
     "feedback_file": "feedback.json",
-    # filename outputs
+    
     "ranked_fname": "ranked_segments.json",
     "topk_fname": "topk.json"
 }
@@ -86,7 +86,7 @@ def compute_composite_scores(segments: List[Dict[str, Any]], cfg: Optional[Dict[
     if n == 0:
         return []
 
-    # Collect arrays
+   
     trend_arr = np.zeros(n); season_arr = np.zeros(n); peaks_arr = np.zeros(n)
     var_arr = np.zeros(n); len_arr = np.zeros(n); missing_arr = np.zeros(n); novelty_arr = np.zeros(n)
     insight_keys = ["distribution","extreme","trend","correlation","similarity","outlier","seasonality","autocorrelation"]
@@ -106,7 +106,7 @@ def compute_composite_scores(segments: List[Dict[str, Any]], cfg: Optional[Dict[
         for k in insight_keys:
             insight_arrs[k][i] = float(ins.get(k, 0.0))
 
-    # normalize structural features
+    
     trend_n = _normalize(trend_arr)
     season_n = _normalize(season_arr)
     peaks_n = _normalize(peaks_arr)
@@ -116,10 +116,10 @@ def compute_composite_scores(segments: List[Dict[str, Any]], cfg: Optional[Dict[
     missing_inv_n = 1.0 - missing_n
     novelty_n = _normalize(novelty_arr)
 
-    # normalized insight arrays (they may already be 0..1 but normalize for safety)
+   
     insight_n = {k: _normalize(v) for k, v in insight_arrs.items()}
 
-    # structural weighted sum
+    
     wF = C["wF"]
     struct_score = (wF["trend_abs"] * trend_n
                     + wF["seasonality"] * season_n
@@ -129,13 +129,13 @@ def compute_composite_scores(segments: List[Dict[str, Any]], cfg: Optional[Dict[
                     + wF["missing_inv"] * missing_inv_n
                     + wF["novelty"] * novelty_n)
 
-    # insight weighted sum
+    
     wI = C["wI"]
     insight_score = np.zeros(n)
     for k in insight_keys:
         insight_score += wI.get(k, 0.0) * insight_n[k]
 
-    # quality penalty
+    
     quality_penalty = np.zeros(n)
     for i, seg in enumerate(segments):
         f = seg.get("features", {})
@@ -145,7 +145,7 @@ def compute_composite_scores(segments: List[Dict[str, Any]], cfg: Optional[Dict[
     composite = (C["alpha_features"] * struct_score) + (C["beta_insights"] * insight_score) - (C["gamma_quality_penalty"] * quality_penalty)
     composite = np.clip(composite, 0.0, 1.0)
 
-    # attach score and return sorted
+    
     for i, seg in enumerate(segments):
         seg["composite_score"] = float(composite[i])
 
@@ -166,7 +166,7 @@ def run_scoring_for_run(run_id: str, base_dir: str, cfg: Optional[Dict[str, Any]
     segments_path = os.path.join(run_folder, "segments.json")
 
     start = time.time()
-    # wait until segments.json exists or timeout
+    
     while True:
         if os.path.exists(segments_path) or (time.time() - start) > wait_timeout:
             break
@@ -178,8 +178,7 @@ def run_scoring_for_run(run_id: str, base_dir: str, cfg: Optional[Dict[str, Any]
     with open(segments_path, "r", encoding="utf-8") as fh:
         segments_list = json.load(fh)
 
-    # segments_list is list of meta dicts; keep as-is but compute scores
-    # compute_composite_scores expects list of dicts (we keep meta-level)
+    
     scored = compute_composite_scores(segments_list, C)
 
     ranked_path = os.path.join(run_folder, C["ranked_fname"])
@@ -210,10 +209,10 @@ def log_user_feedback(run_id: str, feedback: Dict[str, Any], base_dir: str, cfg:
     os.makedirs(run_folder, exist_ok=True)
     feedback_fp = os.path.join(run_folder, C["feedback_file"])
 
-    # append entry
+   
     entry = dict(feedback)
     entry["ts"] = entry.get("timestamp", time.strftime("%Y-%m-%dT%H:%M:%S"))
-    # write
+    
     existing = []
     if os.path.exists(feedback_fp):
         try:
@@ -226,29 +225,29 @@ def log_user_feedback(run_id: str, feedback: Dict[str, Any], base_dir: str, cfg:
     with open(feedback_fp, "w", encoding="utf-8") as fh:
         json.dump(existing, fh, indent=2, default=str)
 
-    # tiny online adaptation: nudge insight weights if accepted
+    
     if entry.get("action") == "accept":
-        # Load ranked segments to see the segment's insight_scores
+       
         ranked_fp = os.path.join(run_folder, C["ranked_fname"])
         if os.path.exists(ranked_fp):
             try:
                 with open(ranked_fp, "r", encoding="utf-8") as fh:
                     ranked = json.load(fh)
-                # find segment by id
+                
                 seg = next((s for s in ranked if s.get("id") == entry.get("segment_id")), None)
                 if seg:
                     ins = seg.get("insight_scores", {})
                     wI = C.get("wI", {})
                     rate = C.get("feedback_update_rate", 0.05)
-                    # increase weights proportional to insight score
+                    
                     for k, v in ins.items():
                         if k in wI:
                             wI[k] = float(wI.get(k, 0.0)) + rate * float(v)
-                    # renormalize
+                    
                     total = sum(wI.values()) or 1.0
                     for k in list(wI.keys()):
                         wI[k] = float(wI[k]) / total
-                    # persist the adjusted weights into run folder (so run-specific tuning exists)
+                    
                     weights_fp = os.path.join(run_folder, "insight_weights.json")
                     with open(weights_fp, "w", encoding="utf-8") as fh:
                         json.dump(wI, fh, indent=2)
@@ -257,4 +256,4 @@ def log_user_feedback(run_id: str, feedback: Dict[str, Any], base_dir: str, cfg:
 
     return feedback_fp
 
-# ----------------- end of module -----------------
+

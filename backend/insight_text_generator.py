@@ -1,4 +1,3 @@
-# insight_text_generator.py
 import json
 from typing import List, Dict, Any
 
@@ -31,7 +30,7 @@ def generate_text_descriptions(eva_sequence):
         insight_type = seg.get("insight_type")
         if not insight_type:
             insight_type = infer_insight_type(seg)
-            seg["insight_type"] = insight_type  # standardize so renderer can reuse it
+            seg["insight_type"] = insight_type  
 
         template = TEMPLATES.get(insight_type, "{measure} shows interesting behaviour between {start} and {end}.")
 
@@ -43,9 +42,9 @@ def generate_text_descriptions(eva_sequence):
         start = seg["start"]
         end = seg["end"]
 
-        # try loading from df if provided in seg
+        
         series = None
-        df = seg.get("_df")   # optional injection
+        df = seg.get("_df")   
         if df is not None:
             try:
                 series = df.loc[start:end, measure].dropna()
@@ -115,13 +114,13 @@ def generate_single_description(insight, df):
     - RL suggestions
     """
 
-    # Normalize insight_type
+    
     insight_type = insight.get("insight_type", "trend")
     measure = insight["measure"]
     start = insight.get("start")
     end = insight.get("end")
 
-    # Extract series
+    
     try:
         series = df.loc[pd.to_datetime(start):pd.to_datetime(end), measure].dropna()
     except Exception:
