@@ -440,6 +440,23 @@ async def generate_one_insight(run_id: str, payload: dict):
 
     
     description = generate_single_description(segment, df)
+    import json
+
+    desc_path = os.path.join(run_folder, "descriptions.json")
+
+    # Load existing descriptions
+    if os.path.exists(desc_path):
+        with open(desc_path, "r") as f:
+            data = json.load(f)
+    else:
+        data = []
+
+    # Append new description string
+    data.append(description)
+
+    # Save back
+    with open(desc_path, "w") as f:
+        json.dump(data, f, indent=2)
 
     return {
         **segment,

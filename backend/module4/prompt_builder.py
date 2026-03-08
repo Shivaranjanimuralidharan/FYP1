@@ -26,20 +26,42 @@ def build_prompt(narrative_bundle, config):
     # --------------------------------------------------
     context = narrative_bundle.get("Context", {})
     metadata = context.get("dataset", {})
+
     if metadata:
+        kept_cols = metadata.get("kept_columns", [])
+
+        dataset_desc = None
+
+        # ---- Known dataset checks ----
+        if any("vaccination" in col.lower() for col in kept_cols):
+            dataset_desc = (
+                "A global COVID-19 time-series dataset compiled from publicly reported "
+                "statistics, tracking how the pandemic evolved over time across countries. "
+                "The dataset captures key indicators such as cases, deaths, testing, and "
+                "vaccination activity, and has been cleaned and resampled to support "
+                "trend-focused analysis."
+            )
+
+        # ---- Gold price dataset check ----
+        elif any("price" in col.lower() for col in kept_cols):
+            dataset_desc = (
+                "A daily gold price time-series dataset covering the period from 2014 to 2025. "
+                "The dataset records historical market prices of 24K gold sourced from the MCX "
+                "market and has been pre-processed for time-series analysis and forecasting. "
+                "Prices are reported in Indian Rupees (INR) per 10 grams of gold, enabling "
+                "analysis of long-term trends, volatility, and price movements in the gold market."
+            )
+
+        # --------------------------------------------------
+        # DATASET CONTEXT HEADER
+        # --------------------------------------------------
         P.append("\nDATASET CONTEXT:\n")
 
-        dataset_desc = metadata.get(
-            "dataset_description",
-            "A global COVID-19 time-series dataset compiled from publicly reported "
-            "statistics, tracking how the pandemic evolved over time across countries. "
-            "The dataset captures key indicators such as cases, deaths, testing, and "
-            "vaccination activity, and has been cleaned and resampled to support "
-            "trend-focused analysis."
-        )
-        P.append(f"- Dataset overview: {dataset_desc}")
+        # Add dataset description only if recognized
+        if dataset_desc:
+            P.append(f"- Dataset overview: {dataset_desc}")
 
-        kept_cols = metadata.get("kept_columns")
+        # ALWAYS include key measures
         if kept_cols:
             P.append(
                 "- Key measures available for analysis include: "
